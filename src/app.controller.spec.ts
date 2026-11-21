@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { AppController } from "./app.controller";
+import { AppService } from "./app.service";
 
-describe('AppController', () => {
+describe("AppController", () => {
   let appController: AppController;
 
   beforeEach(async () => {
@@ -14,12 +14,12 @@ describe('AppController', () => {
     appController = app.get<AppController>(AppController);
   });
 
-  describe('getHealth', () => {
-    it('devrait retourner le statut ok pour MercatoIQ API', () => {
+  describe("getHealth", () => {
+    it("devrait retourner le statut ok pour MercatoIQ API", () => {
       const result = appController.getHealth();
-      expect(result.service).toBe('MercatoIQ API');
-      expect(result.version).toBe('v1');
-      expect(result.status).toBe('ok');
+      expect(result.service).toBe("MercatoIQ API");
+      expect(result.version).toBe("v1");
+      expect(result.status).toBe("ok");
       expect(result.timestamp).toBeDefined();
     });
   });
