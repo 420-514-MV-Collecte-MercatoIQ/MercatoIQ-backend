@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable } from "@nestjs/common";
 
 @Injectable()
 export class AppService {
   getHealthStatus() {
     return {
-      service: 'MercatoIQ API',
-      version: 'v1',
-      status: 'ok',
+      service: "MercatoIQ API",
+      version: "v1",
+      status: "ok",
       timestamp: new Date().toISOString(),
     };
   }
