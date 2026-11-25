@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚽ MercatoIQ — Backend API
+# ⚽ MercatoIQ - Backend API
 
 **European Football Performance & Financial Intelligence REST API**  
 *Connecting on-pitch metrics with transfer market realities across the UEFA Champions League & Top 5 European Leagues (2012–present).*
