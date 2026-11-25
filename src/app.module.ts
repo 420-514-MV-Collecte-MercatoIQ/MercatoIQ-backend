@@ -6,6 +6,8 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { getMongooseConfig } from './config/database.config';
 import { DatabaseModule } from './database/database.module';
+import { PlayersModule } from './players/players.module';
+import { TransfersModule } from './transfers/transfers.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -22,6 +24,8 @@ import { UsersModule } from './users/users.module';
     DatabaseModule,
     UsersModule,
     AuthModule,
+    PlayersModule,
+    TransfersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
