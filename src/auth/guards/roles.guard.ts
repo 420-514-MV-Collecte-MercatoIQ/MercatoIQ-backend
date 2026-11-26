@@ -22,15 +22,15 @@ export class RolesGuard implements CanActivate {
       context.getClass(),
     ]);
 
+    const hasRoles = !!roles && roles.length > 0;
+
     if (
-      (!roles || roles.length === 0) &&
-      !isAdminController(context.getClass())
+      (!hasRoles) && !isAdminController(context.getClass())
     ) {
       return true;
     }
 
-    const required: UserRole[] =
-      !roles || roles.length === 0 ? roles : ["admin"];
+    const required = hasRoles ? roles : ["admin"];
 
     const request = context.switchToHttp().getRequest();
     const user: AuthenticatedUser | undefined = request.user;
