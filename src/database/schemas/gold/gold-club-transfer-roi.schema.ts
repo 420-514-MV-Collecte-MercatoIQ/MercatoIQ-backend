@@ -34,6 +34,18 @@ export class GoldClubTransferRoi {
   @Prop()
   players_bought?: number;
 
+  @Prop({ default: 0 })
+  total_goals?: number;
+
+  @Prop({ default: 0 })
+  total_assists?: number;
+
+  @Prop({ default: 0 })
+  total_ga?: number;
+
+  @Prop({ type: Number, default: null })
+  ga_per_m_eur?: number | null;
+
   @Prop()
   computed_at?: Date;
 }

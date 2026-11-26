@@ -43,6 +43,9 @@ export class GoldUclVsDomestic {
   @Prop({ type: Number, default: null })
   ucl_goals_per_90: number | null;
 
+  @Prop({ type: Number, default: null })
+  ucl_ga_per_90?: number | null;
+
   @Prop({ required: true })
   domestic_competition_id: string;
 
@@ -62,7 +65,13 @@ export class GoldUclVsDomestic {
   domestic_goals_per_90: number | null;
 
   @Prop({ type: Number, default: null })
+  domestic_ga_per_90?: number | null;
+
+  @Prop({ type: Number, default: null })
   goals_per_90_delta: number | null;
+
+  @Prop({ type: Number, default: null })
+  ga_per_90_delta?: number | null;
 
   @Prop()
   computed_at?: Date;
