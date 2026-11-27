@@ -16,6 +16,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { ClubsModule } from './clubs/clubs.module';
 import { getMongooseConfig } from './config/database.config';
 import { DatabaseModule } from './database/database.module';
 import { PlayersModule } from './players/players.module';
@@ -39,6 +40,7 @@ import { UsersModule } from './users/users.module';
     PlayersModule,
     TransfersModule,
     AnalyticsModule,
+    ClubsModule,
   ],
   controllers: [AppController],
   providers: [
