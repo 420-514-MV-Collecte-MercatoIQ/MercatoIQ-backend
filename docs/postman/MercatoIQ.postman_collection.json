@@ -1,0 +1,367 @@
+{
+  "info": {
+    "name": "MercatoIQ API",
+    "_postman_id": "c7a6b9e2-4f91-4a2b-b36a-mercatoiq2026",
+    "description": "Collection complète pour l’API REST MercatoIQ (Health, Auth JWT, Players & Transfers CRUD Silver, et Analytics Gold Q1-Q4).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.access_token) {",
+                  "    pm.environment.set('jwt_token', json.access_token);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"analyst@mercatoiq.io\",\n  \"password\": \"StrongPass2026!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.access_token) {",
+                  "    pm.environment.set('jwt_token', json.access_token);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"analyst@mercatoiq.io\",\n  \"password\": \"StrongPass2026!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Players (Silver CRUD)",
+      "item": [
+        {
+          "name": "List Players",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/players?page=1&limit=20&position=Attack",
+              "host": ["{{base_url}}"],
+              "path": ["players"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "position", "value": "Attack" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Player by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/players/{{sample_player_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["players", "{{sample_player_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Player",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"player_id\": 999001,\n  \"player_name\": \"Lamine Yamal\",\n  \"date_of_birth\": \"2007-07-13\",\n  \"nationality\": \"Spain\",\n  \"position\": \"Attack\",\n  \"sub_position\": \"Right Winger\",\n  \"foot\": \"left\",\n  \"height_cm\": 180,\n  \"current_club\": {\n    \"club_id\": 131,\n    \"club_name\": \"FC Barcelona\",\n    \"joined_date\": \"2023-07-01\",\n    \"contract_expiry\": \"2026-06-30\"\n  },\n  \"current_market_value_eur\": 150000000,\n  \"highest_market_value_eur\": 180000000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/players",
+              "host": ["{{base_url}}"],
+              "path": ["players"]
+            }
+          }
+        },
+        {
+          "name": "Update Player",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_market_value_eur\": 180000000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/players/{{sample_player_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["players", "{{sample_player_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Player",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/players/{{sample_player_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["players", "{{sample_player_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transfers (Silver CRUD)",
+      "item": [
+        {
+          "name": "List Transfers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/transfers?page=1&limit=20&season=2024",
+              "host": ["{{base_url}}"],
+              "path": ["transfers"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "season", "value": "2024" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Transfer by Mongo ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/transfers/{{sample_transfer_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["transfers", "{{sample_transfer_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Transfer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json._id) {",
+                  "    pm.environment.set('sample_transfer_id', json._id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"player_id\": 342229,\n  \"season\": 2024,\n  \"competition_id\": \"ES1\",\n  \"position\": \"Attack\",\n  \"from_club_id\": 583,\n  \"from_club_name\": \"Paris Saint-Germain\",\n  \"to_club_id\": 418,\n  \"to_club_name\": \"Real Madrid\",\n  \"transfer_date\": \"2024-07-01\",\n  \"transfer_fee_eur\": 0,\n  \"market_value_at_transfer_eur\": 180000000,\n  \"transfer_type\": \"free\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/transfers",
+              "host": ["{{base_url}}"],
+              "path": ["transfers"]
+            }
+          }
+        },
+        {
+          "name": "Update Transfer",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transfer_fee_eur\": 0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/transfers/{{sample_transfer_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["transfers", "{{sample_transfer_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Transfer",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/transfers/{{sample_transfer_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["transfers", "{{sample_transfer_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics (Gold)",
+      "item": [
+        {
+          "name": "KPIs Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/kpis?season=2024",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "kpis"],
+              "query": [{ "key": "season", "value": "2024" }]
+            }
+          }
+        },
+        {
+          "name": "Q1 · Club Transfer ROI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/club-roi?season=2024&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "club-roi"],
+              "query": [
+                { "key": "season", "value": "2024" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Q2 · U23 ML Scouting",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/scouting-u23?season=2024&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "scouting-u23"],
+              "query": [
+                { "key": "season", "value": "2024" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Q3 · UCL vs Domestic",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/ucl-vs-domestic?season=2024&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "ucl-vs-domestic"],
+              "query": [
+                { "key": "season", "value": "2024" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Q4 · Super-Subs Impact",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/super-subs?season=2024&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "super-subs"],
+              "query": [
+                { "key": "season", "value": "2024" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
