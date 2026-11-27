@@ -3,7 +3,7 @@
 # ⚽ MercatoIQ - Backend API
 
 **European Football Performance & Financial Intelligence REST API**  
-*Connecting on-pitch metrics with transfer market realities across the UEFA Champions League & Top 5 European Leagues (2012–present).*
+*Connecting on-pitch metrics with transfer market realities across the UEFA Champions League & Top 5 European Leagues (2012 to present).*
 
 [![NestJS](https://img.shields.io/badge/NestJS-10-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -15,8 +15,6 @@
 [Quick Start](#-quick-start) · [Architecture](#-architecture) · [API Overview](#-api-overview) · [Environment](#-environment-variables) · [Scripts](#-useful-commands)
 
 </div>
-
----
 
 ## 🧭 Architecture
 
@@ -30,8 +28,6 @@ flowchart LR
     API -->|child_process.spawn<br/>Cron · Admin · CRUD| Py["Python Pipeline<br/>pandas · NumPy · scikit-learn"]
     Py -->|Upsert & Logs| Mongo
 ```
-
----
 
 ## 🚀 Quick Start
 
@@ -53,16 +49,14 @@ npm run start:dev
 - **Health Check:** [`http://localhost:3000/api/v1/health`](http://localhost:3000/api/v1/health)
 - **Swagger UI:** [`http://localhost:3000/api/docs`](http://localhost:3000/api/docs)
 
----
-
 ## 🔌 API Overview
 
 All routes are versioned under **`/api/v1`**.
 
 | Domain | Endpoints | Access (RBAC) | Redis Cache |
 | :--- | :--- | :--- | :---: |
-| **Health** | `GET /health` | Public | — |
-| **Auth** | `POST /auth/register`, `POST /auth/login` | Public | — |
+| **Health** | `GET /health` | Public | None |
+| **Auth** | `POST /auth/register`, `POST /auth/login` | Public | None |
 | **Players** | `GET /players`, `GET /players/:id` | Public / Auth | ⚡ Cached |
 | **Players (Write)** | `POST /players`, `PATCH /players/:id`, `DELETE /players/:id` | `user` / `admin` (JWT) | 🔄 Invalidates |
 | **Transfers** | `GET /transfers`, `POST /transfers`, `PATCH /transfers/:id`, `DELETE /transfers/:id` | Read / JWT Write | ⚡ / 🔄 |
@@ -70,8 +64,6 @@ All routes are versioned under **`/api/v1`**.
 | **Admin & Pipeline** | `POST /admin/pipeline/trigger`, `GET /admin/metrics` | **`admin` only** (`403` for `user`) | 🔄 Invalidates |
 
 > **Security Built-In:** `ValidationPipe` (`whitelist: true`, `forbidNonWhitelisted: true`), `bcrypt` password hashing, JWT Bearer auth, `@nestjs/throttler` rate limiting, `helmet`, and strict CORS.
-
----
 
 ## 📂 Project Structure
 
@@ -95,8 +87,6 @@ backend/
 
 *(Upcoming feature modules plug cleanly into `src/`: `schemas/`, `players/`, `transfers/`, `analytics/`, `auth/`, `users/`, `cache/`, and `pipeline/`.)*
 
----
-
 ## ⚙️ Environment Variables
 
 Copy `.env.example` to `.env` and adjust if needed:
@@ -113,8 +103,6 @@ Copy `.env.example` to `.env` and adjust if needed:
 | `BCRYPT_SALT_ROUNDS` | `10` | Password hashing cost factor |
 | `PYTHON_BIN` / `PIPELINE_SCRIPT_PATH` | `python3` / `../pipeline/run_pipeline.py` | Python runtime & pipeline entrypoint |
 
----
-
 ## 🛠️ Useful Commands
 
 ```bash
@@ -126,8 +114,6 @@ npm run test:cov    # Run tests with coverage report (target >= 70%)
 npm run test:e2e    # Run Supertest end-to-end suite
 npm run format      # Format codebase with Prettier
 ```
-
----
 
 ## 🌿 Git Flow
 
