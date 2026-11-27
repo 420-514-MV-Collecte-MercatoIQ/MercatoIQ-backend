@@ -6,6 +6,8 @@ export class PaginationQueryDto {
   @ApiPropertyOptional({
     description: "Numéro de page (commence à 1)",
     default: 1,
+    minimum: 1,
+    example: 1,
   })
   @IsOptional()
   @Type(() => Number)
@@ -16,6 +18,9 @@ export class PaginationQueryDto {
   @ApiPropertyOptional({
     description: "Nombre d’éléments par page (max 100)",
     default: 20,
+    minimum: 1,
+    maximum: 100,
+    example: 20,
   })
   @IsOptional()
   @Type(() => Number)
