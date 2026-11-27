@@ -20,7 +20,7 @@ export class ClubsService {
     private readonly competitionModel: Model<BronzeCompetitionDocument>,
   ) {}
 
-  findCompetitions() {
+  async findCompetitions() {
     return this.competitionModel
       .find({ competition_id: { $in: TARGET_COMPETITIONS } })
       .select(HIDDEN_FIELDS)
@@ -67,7 +67,7 @@ export class ClubsService {
       .exec();
 
     if (!club) {
-      throw new NotFoundException(`Club #${clubId} not found`);
+      throw new NotFoundException(`Le club ${clubId} n'existe pas.`);
     }
     return club;
   }
