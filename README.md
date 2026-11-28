@@ -18,14 +18,14 @@
 
 ## 🧭 Architecture
 
-The API serves pre-aggregated **Gold** analytics (cached in **Redis** for high-request traffic), manages **Silver** domain CRUD (`players`, `transfers`), enforces **JWT + RBAC** security, and orchestrates the **Python Medallion Pipeline** directly via `child_process.spawn`.
+The API serves pre-aggregated **Gold** analytics, manages **Silver** domain CRUD (`players`, `transfers`) and reference lookups (`clubs`, `competitions`), and enforces **JWT + RBAC** security. Redis caching (`BACK-05`) and direct **Python Medallion Pipeline** orchestration via `child_process.spawn` (`OPS-01`) are planned integrations tracked on GitHub Projects.
 
 ```mermaid
 flowchart LR
     Client["React Client<br/>/dashboard & /admin"] -->|HTTPS + JWT| API["NestJS API<br/>/api/v1"]
-    API <-->|Hot Reads & TTL| Redis[("Redis Cache<br/>Gold & Lists")]
-    API <-->|Silver CRUD & Gold Reads| Mongo[("MongoDB<br/>Bronze · Silver · Gold")]
-    API -->|child_process.spawn<br/>Cron · Admin · CRUD| Py["Python Pipeline<br/>pandas · NumPy · scikit-learn"]
+    API <-.->|Planned: BACK-05| Redis[("Redis Cache<br/>Gold & Lists")]
+    API <-->|Silver CRUD, Clubs & Gold Reads| Mongo[("MongoDB<br/>Bronze · Silver · Gold")]
+    API -.->|Planned: OPS-01<br/>spawn & Cron| Py["Python Pipeline<br/>pandas · NumPy · scikit-learn"]
     Py -->|Upsert & Logs| Mongo
 ```
 
@@ -60,7 +60,7 @@ All routes are versioned under **`/api/v1`**. By default, `JwtAuthGuard` protect
 | **Players** | `GET /players`, `GET /players/:id`, `POST /players`, `PATCH /players/:id`, `DELETE /players/:id` | JWT Bearer (`user` / `admin`) | ✅ Live |
 | **Transfers** | `GET /transfers`, `GET /transfers/:id`, `POST /transfers`, `PATCH /transfers/:id`, `DELETE /transfers/:id` | JWT Bearer (`user` / `admin`) | ✅ Live |
 | **Analytics (Gold)** | `GET /analytics/kpis`, `/club-roi`, `/scouting-u23`, `/ucl-vs-domestic`, `/super-subs` | JWT Bearer (`user` / `admin`) | ✅ Live |
-| **Clubs & Competitions** | `GET /competitions`, `GET /clubs`, `GET /clubs/:id` | JWT Bearer (`user` / `admin`) | 🔄 PR `#7` |
+| **Clubs & Competitions** | `GET /competitions`, `GET /clubs`, `GET /clubs/:id` | JWT Bearer (`user` / `admin`) | ✅ Live |
 | **Admin & Pipeline** | `POST /admin/pipeline/trigger`, `GET /admin/metrics` | **`admin` only** (`403` for `user`) | 🔜 Planned (`OPS-01`) |
 
 > **Security Built-In:** Global `JwtAuthGuard` + `RolesGuard`, `ValidationPipe` (`whitelist: true`, `forbidNonWhitelisted: true`, `transform: true`), `bcrypt` password hashing, and strict CORS. *(Rate limiting with `@nestjs/throttler` and `helmet` are tracked in `SEC-02`.)*
@@ -97,6 +97,7 @@ backend/
 │   │       ├── silver/                         # SilverPlayer, SilverAppearance, SilverTransfer
 │   │       └── gold/                           # GoldClubTransferRoi, GoldUclVsDomestic, GoldUndervaluedScouting, GoldSuperSubs
 │   ├── auth/                                   # JWT auth, login/register, @Public/@Roles, JwtAuthGuard & RolesGuard
+│   ├── clubs/                                  # Reference API (/competitions, /clubs, /clubs/:id), schemas & DTOs
 │   ├── users/                                  # Users schema & lookup/creation service
 │   ├── players/                                # Silver Players CRUD controller, service & DTOs
 │   ├── transfers/                              # Silver Transfers CRUD controller, service & DTOs
@@ -130,9 +131,9 @@ Copy `.env.example` to `.env` and adjust if needed:
 npm run start:dev   # Start API in watch mode
 npm run build       # Compile TypeScript to dist/
 npm run start:prod  # Run compiled production build
-npm test            # Run Jest unit tests
-npm run test:cov    # Run tests with coverage report (target >= 70%)
-npm run test:e2e    # Run Supertest end-to-end suite
+npm test            # Run Jest unit tests (14 suites / 39 tests passing)
+npm run test:cov    # Run tests with coverage report (~78.5% stmts / ~79.5% lines; target >= 70%)
+npm run test:e2e    # Run Supertest end-to-end suite (guard/RBAC security e2e tracked in TEST-02)
 npm run test:postman # Run live Postman route & data assertions via Newman
 npm run format      # Format codebase with Prettier
 ```
