@@ -25,14 +25,23 @@ async function bootstrap() {
     }),
   );
 
+  const port = configService.get<number>("PORT") || 3000;
+
   const swaggerConfig = new DocumentBuilder()
     .setTitle("MercatoIQ API")
     .setDescription(
-      "API REST d’intelligence sportive et financière du football européen (Architecture Médaillon Bronze -> Silver -> Gold)",
+      "API REST d’intelligence sportive et financière du football européen (Architecture Médaillon Bronze -> Silver -> Gold). Protégée par JWT Bearer Auth, RBAC (user / admin) et validation DTO stricte.",
     )
     .setVersion("1.0")
-    .addBearerAuth()
-    .addTag("Health", "État de santé de l’API")
+    .addServer(`http://localhost:${port}`, "Local Development")
+    .addBearerAuth({
+      type: "http",
+      scheme: "bearer",
+      bearerFormat: "JWT",
+      description:
+        "Saisir le jeton JWT retourné par POST /api/v1/auth/login ou POST /api/v1/auth/register",
+    })
+    .addTag("Health", "État de santé de l’API (Public)")
     .addTag("Auth", "Authentification JWT & RBAC (user / admin)")
     .addTag("Players", "CRUD & recherche de joueurs (Silver)")
     .addTag("Transfers", "CRUD & historique des transferts (Silver)")
@@ -44,9 +53,15 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup("api/docs", app, document);
+  SwaggerModule.setup("api/docs", app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+      filter: true,
+      displayRequestDuration: true,
+      docExpansion: "list",
+    },
+  });
 
-  const port = configService.get<number>("PORT") || 3000;
   await app.listen(port);
   logger.log(`MercatoIQ API active sur http://localhost:${port}/${apiPrefix}`);
   logger.log(

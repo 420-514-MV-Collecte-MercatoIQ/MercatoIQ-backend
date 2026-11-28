@@ -1,3 +1,4 @@
+export * from './analytics-response.dto';
 export * from './kpis-query.dto';
 export * from './club-roi-query.dto';
 export * from './ucl-vs-domestic-query.dto';
