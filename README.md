@@ -51,41 +51,62 @@ npm run start:dev
 
 ## 🔌 API Overview
 
-All routes are versioned under **`/api/v1`**.
+All routes are versioned under **`/api/v1`**. By default, `JwtAuthGuard` protects all endpoints unless decorated with `@Public()`.
 
-| Domain | Endpoints | Access (RBAC) | Redis Cache |
+| Domain | Endpoints | Access (RBAC) | Status |
 | :--- | :--- | :--- | :---: |
-| **Health** | `GET /health` | Public | None |
-| **Auth** | `POST /auth/register`, `POST /auth/login` | Public | None |
-| **Players** | `GET /players`, `GET /players/:id` | Public / Auth | ⚡ Cached |
-| **Players (Write)** | `POST /players`, `PATCH /players/:id`, `DELETE /players/:id` | `user` / `admin` (JWT) | 🔄 Invalidates |
-| **Transfers** | `GET /transfers`, `POST /transfers`, `PATCH /transfers/:id`, `DELETE /transfers/:id` | Read / JWT Write | ⚡ / 🔄 |
-| **Analytics (Gold)** | `GET /analytics/kpis`, `/club-roi`, `/scouting-u23`, `/ucl-vs-domestic`, `/super-subs` | Public / Auth | ⚡ Cached |
-| **Admin & Pipeline** | `POST /admin/pipeline/trigger`, `GET /admin/metrics` | **`admin` only** (`403` for `user`) | 🔄 Invalidates |
+| **Health** | `GET /health` | Public (`@Public()`) | ✅ Live |
+| **Auth** | `POST /auth/register`, `POST /auth/login` | Public (`@Public()`) | ✅ Live |
+| **Players** | `GET /players`, `GET /players/:id`, `POST /players`, `PATCH /players/:id`, `DELETE /players/:id` | JWT Bearer (`user` / `admin`) | ✅ Live |
+| **Transfers** | `GET /transfers`, `GET /transfers/:id`, `POST /transfers`, `PATCH /transfers/:id`, `DELETE /transfers/:id` | JWT Bearer (`user` / `admin`) | ✅ Live |
+| **Analytics (Gold)** | `GET /analytics/kpis`, `/club-roi`, `/scouting-u23`, `/ucl-vs-domestic`, `/super-subs` | JWT Bearer (`user` / `admin`) | ✅ Live |
+| **Clubs & Competitions** | `GET /competitions`, `GET /clubs`, `GET /clubs/:id` | JWT Bearer (`user` / `admin`) | 🔄 PR `#7` |
+| **Admin & Pipeline** | `POST /admin/pipeline/trigger`, `GET /admin/metrics` | **`admin` only** (`403` for `user`) | 🔜 Planned (`OPS-01`) |
 
-> **Security Built-In:** `ValidationPipe` (`whitelist: true`, `forbidNonWhitelisted: true`), `bcrypt` password hashing, JWT Bearer auth, `@nestjs/throttler` rate limiting, `helmet`, and strict CORS.
+> **Security Built-In:** Global `JwtAuthGuard` + `RolesGuard`, `ValidationPipe` (`whitelist: true`, `forbidNonWhitelisted: true`, `transform: true`), `bcrypt` password hashing, and strict CORS. *(Rate limiting with `@nestjs/throttler` and `helmet` are tracked in `SEC-02`.)*
+
+## 📖 Swagger / OpenAPI Documentation
+
+Interactive API documentation is served at [`http://localhost:3000/api/docs`](http://localhost:3000/api/docs) with:
+- Persistent JWT Bearer authorization (`persistAuthorization: true`) — authenticate via `POST /api/v1/auth/login` or `/register` and click **Authorize**.
+- Typed request and response DTO schemas (`AuthResponseDto`, `SilverPlayer`, `SilverTransfer`, `GoldClubTransferRoi`, `GoldUclVsDomestic`, `GoldUndervaluedScouting`, `GoldSuperSubs`, `KpisResponseDto`, `Paginated*ResponseDto`, `ErrorResponseDto`).
+- Verified OpenAPI generation test (`src/swagger.spec.ts`) and runnable Postman artifacts under `docs/postman/`.
 
 ## 📂 Project Structure
 
 ```text
 backend/
+├── docs/
+│   └── postman/
+│       ├── MercatoIQ.postman_collection.json   # API collection
+│       └── MercatoIQ.postman_environment.json  # Local environment variables
 ├── src/
-│   ├── main.ts                       # Bootstrap (/api/v1, ValidationPipe, CORS, Swagger /api/docs)
-│   ├── app.module.ts                 # Root module (ConfigModule + async MongooseModule)
-│   ├── app.controller.ts             # GET /api/v1/health
-│   ├── app.service.ts                # Health status service
+│   ├── main.ts                                 # Bootstrap (/api/v1, ValidationPipe, CORS, Swagger /api/docs)
+│   ├── app.module.ts                           # Root module (ConfigModule, MongooseModule, feature modules, guards)
+│   ├── app.controller.ts                       # GET /api/v1/health (@Public)
+│   ├── app.service.ts                          # Health status service
 │   ├── config/
-│   │   └── database.config.ts        # MongoDB connection factory
-│   └── common/
-│       └── dto/
-│           └── pagination-query.dto.ts # Shared ?page=1&limit=20 validation DTO
+│   │   └── database.config.ts                  # MongoDB connection factory
+│   ├── common/
+│   │   └── dto/
+│   │       ├── pagination-query.dto.ts         # Shared ?page=1&limit=20 validation DTO
+│   │       └── paginated-response.dto.ts       # Shared response, pagination meta, and error DTOs
+│   ├── database/
+│   │   ├── database.module.ts                  # Registers Silver & Gold Mongoose models
+│   │   └── schemas/
+│   │       ├── silver/                         # SilverPlayer, SilverAppearance, SilverTransfer
+│   │       └── gold/                           # GoldClubTransferRoi, GoldUclVsDomestic, GoldUndervaluedScouting, GoldSuperSubs
+│   ├── auth/                                   # JWT auth, login/register, @Public/@Roles, JwtAuthGuard & RolesGuard
+│   ├── users/                                  # Users schema & lookup/creation service
+│   ├── players/                                # Silver Players CRUD controller, service & DTOs
+│   ├── transfers/                              # Silver Transfers CRUD controller, service & DTOs
+│   ├── analytics/                              # Gold Q1-Q4 + KPIs controller, service, query & response DTOs
+│   └── swagger.spec.ts                         # OpenAPI schema & route coverage test
 ├── test/
-│   └── jest-e2e.json                 # E2E Jest configuration
-├── .env.example                      # Environment template
-└── package.json                      # Dependencies & npm scripts
+│   └── jest-e2e.json                           # E2E Jest configuration
+├── .env.example                                # Environment template
+└── package.json                                # Dependencies & npm scripts
 ```
-
-*(Upcoming feature modules plug cleanly into `src/`: `schemas/`, `players/`, `transfers/`, `analytics/`, `auth/`, `users/`, `cache/`, and `pipeline/`.)*
 
 ## ⚙️ Environment Variables
 

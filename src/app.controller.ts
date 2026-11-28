@@ -1,7 +1,8 @@
 import { Controller, Get } from "@nestjs/common";
-import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
+import { ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { AppService } from "./app.service";
 import { Public } from "./auth/decorators/public.decorator";
+import { HealthResponseDto } from "./common/dto/paginated-response.dto";
 
 @ApiTags("Health")
 @Controller("health")
@@ -15,17 +16,9 @@ export class AppController {
     description:
       "Endpoint public de contrôle de santé utilisé par le monitoring et le frontend pour vérifier l’état de l’API.",
   })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: "Serveur opérationnel",
-    schema: {
-      example: {
-        service: "MercatoIQ API",
-        version: "v1",
-        status: "ok",
-        timestamp: "2026-11-27T14:30:00.000Z",
-      },
-    },
+    type: HealthResponseDto,
   })
   getHealth() {
     return this.appService.getHealthStatus();

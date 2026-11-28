@@ -10,6 +10,7 @@ import {
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import { AuthService } from "./auth.service";
+import { ErrorResponseDto } from "../common/dto/paginated-response.dto";
 import { Public } from "./decorators/public.decorator";
 import { AuthResponseDto } from "./dto/auth-response.dto";
 import { LoginDto } from "./dto/login.dto";
@@ -32,8 +33,14 @@ export class AuthController {
     description: "Compte créé et jeton JWT émis",
     type: AuthResponseDto,
   })
-  @ApiBadRequestResponse({ description: "Données d’inscription invalides" })
-  @ApiConflictResponse({ description: "Adresse courriel déjà utilisée" })
+  @ApiBadRequestResponse({
+    description: "Données d’inscription invalides",
+    type: ErrorResponseDto,
+  })
+  @ApiConflictResponse({
+    description: "Adresse courriel déjà utilisée",
+    type: ErrorResponseDto,
+  })
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
@@ -51,8 +58,14 @@ export class AuthController {
     description: "Authentification réussie",
     type: AuthResponseDto,
   })
-  @ApiBadRequestResponse({ description: "Requête malformée" })
-  @ApiUnauthorizedResponse({ description: "Identifiants invalides" })
+  @ApiBadRequestResponse({
+    description: "Requête malformée",
+    type: ErrorResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: "Identifiants invalides",
+    type: ErrorResponseDto,
+  })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }

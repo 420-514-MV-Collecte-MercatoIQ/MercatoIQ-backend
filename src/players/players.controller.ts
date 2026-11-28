@@ -13,14 +13,20 @@ import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiConflictResponse,
+  ApiCreatedResponse,
   ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiParam,
-  ApiResponse,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { DeletePlayerResultDto } from '../common/dto/paginated-response.dto';
+import {
+  DeletePlayerResultDto,
+  ErrorResponseDto,
+  PaginatedPlayersResponseDto,
+} from '../common/dto/paginated-response.dto';
+import { SilverPlayer } from '../database/schemas/silver/silver-player.schema';
 import { CreatePlayerDto } from './dto/create-player.dto';
 import { PlayerQueryDto } from './dto/player-query.dto';
 import { UpdatePlayerDto } from './dto/update-player.dto';
@@ -28,7 +34,10 @@ import { PlayersService } from './players.service';
 
 @ApiTags('Players')
 @ApiBearerAuth()
-@ApiUnauthorizedResponse({ description: 'Jeton JWT manquant ou invalide' })
+@ApiUnauthorizedResponse({
+  description: 'Jeton JWT manquant ou invalide',
+  type: ErrorResponseDto,
+})
 @Controller('players')
 export class PlayersController {
   constructor(private readonly playersService: PlayersService) {}
@@ -39,8 +48,14 @@ export class PlayersController {
     description:
       'Retourne les profils Silver triés par valeur marchande décroissante avec filtres dynamiques.',
   })
-  @ApiResponse({ status: 200, description: 'Liste paginée des joueurs et métadonnées' })
-  @ApiBadRequestResponse({ description: 'Paramètres de requête invalides' })
+  @ApiOkResponse({
+    description: 'Liste paginée des joueurs et métadonnées',
+    type: PaginatedPlayersResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Paramètres de requête invalides',
+    type: ErrorResponseDto,
+  })
   findAll(@Query() query: PlayerQueryDto) {
     return this.playersService.findAll(query);
   }
@@ -53,18 +68,36 @@ export class PlayersController {
     example: 342229,
     description: 'Identifiant unique Transfermarkt du joueur',
   })
-  @ApiResponse({ status: 200, description: 'Détails du joueur' })
-  @ApiBadRequestResponse({ description: 'Identifiant numérique invalide' })
-  @ApiNotFoundResponse({ description: 'Joueur introuvable' })
+  @ApiOkResponse({
+    description: 'Détails du joueur',
+    type: SilverPlayer,
+  })
+  @ApiBadRequestResponse({
+    description: 'Identifiant numérique invalide',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Joueur introuvable',
+    type: ErrorResponseDto,
+  })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.playersService.findOne(id);
   }
 
   @Post()
   @ApiOperation({ summary: 'Crée un nouveau joueur (Silver)' })
-  @ApiResponse({ status: 201, description: 'Joueur créé avec succès' })
-  @ApiBadRequestResponse({ description: 'Données du joueur invalides' })
-  @ApiConflictResponse({ description: 'Un joueur avec ce player_id existe déjà' })
+  @ApiCreatedResponse({
+    description: 'Joueur créé avec succès',
+    type: SilverPlayer,
+  })
+  @ApiBadRequestResponse({
+    description: 'Données du joueur invalides',
+    type: ErrorResponseDto,
+  })
+  @ApiConflictResponse({
+    description: 'Un joueur avec ce player_id existe déjà',
+    type: ErrorResponseDto,
+  })
   create(@Body() dto: CreatePlayerDto) {
     return this.playersService.create(dto);
   }
@@ -77,9 +110,18 @@ export class PlayersController {
     example: 342229,
     description: 'Identifiant unique Transfermarkt du joueur',
   })
-  @ApiResponse({ status: 200, description: 'Joueur mis à jour' })
-  @ApiBadRequestResponse({ description: 'Données de mise à jour invalides' })
-  @ApiNotFoundResponse({ description: 'Joueur introuvable' })
+  @ApiOkResponse({
+    description: 'Joueur mis à jour',
+    type: SilverPlayer,
+  })
+  @ApiBadRequestResponse({
+    description: 'Données de mise à jour invalides',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Joueur introuvable',
+    type: ErrorResponseDto,
+  })
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdatePlayerDto) {
     return this.playersService.update(id, dto);
   }
@@ -92,12 +134,18 @@ export class PlayersController {
     example: 342229,
     description: 'Identifiant unique Transfermarkt du joueur',
   })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Joueur supprimé',
     type: DeletePlayerResultDto,
   })
-  @ApiNotFoundResponse({ description: 'Joueur introuvable' })
+  @ApiBadRequestResponse({
+    description: 'Identifiant numérique invalide',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Joueur introuvable',
+    type: ErrorResponseDto,
+  })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.playersService.remove(id);
   }
