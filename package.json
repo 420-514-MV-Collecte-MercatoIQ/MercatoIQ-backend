@@ -16,7 +16,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:postman": "npx --yes newman run docs/postman/MercatoIQ.postman_collection.json -e docs/postman/MercatoIQ.postman_environment.json"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

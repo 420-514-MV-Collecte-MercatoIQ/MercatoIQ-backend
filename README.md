@@ -133,7 +133,20 @@ npm run start:prod  # Run compiled production build
 npm test            # Run Jest unit tests
 npm run test:cov    # Run tests with coverage report (target >= 70%)
 npm run test:e2e    # Run Supertest end-to-end suite
+npm run test:postman # Run live Postman route & data assertions via Newman
 npm run format      # Format codebase with Prettier
+```
+
+## 🧪 Postman Route & Data Tests
+
+The Postman collection (`docs/postman/MercatoIQ.postman_collection.json`) and local environment (`docs/postman/MercatoIQ.postman_environment.json`) include automated `pm.test` assertions verifying live HTTP status codes, JWT guard enforcement (`401`/`409`/`404`/`400`), Silver CRUD persistence (using disposable IDs), and Gold analytical data integrity.
+
+```bash
+# Option 1: Postman CLI
+postman collection run docs/postman/MercatoIQ.postman_collection.json -e docs/postman/MercatoIQ.postman_environment.json
+
+# Option 2: npm script (Newman)
+npm run test:postman
 ```
 
 ## 🌿 Git Flow

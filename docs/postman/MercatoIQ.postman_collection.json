@@ -2,7 +2,7 @@
   "info": {
     "name": "MercatoIQ API",
     "_postman_id": "c7a6b9e2-4f91-4a2b-b36a-mercatoiq2026",
-    "description": "Collection complète pour l’API REST MercatoIQ (Health, Auth JWT, Players & Transfers CRUD Silver, et Analytics Gold Q1-Q4).",
+    "description": "Collection complète avec assertions pm.test pour l’API REST MercatoIQ (Health, Auth & Guards JWT, Players & Transfers CRUD Silver, et Analytics Gold Q1-Q4 + KPIs).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -21,6 +21,26 @@
       "item": [
         {
           "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Health payload matches API contract', function () {",
+                  "  pm.expect(json.service).to.eql('MercatoIQ API');",
+                  "  pm.expect(json.version).to.eql('v1');",
+                  "  pm.expect(json.status).to.eql('ok');",
+                  "  pm.expect(Number.isNaN(Date.parse(json.timestamp))).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "auth": { "type": "noauth" },
             "method": "GET",
@@ -35,22 +55,71 @@
       ]
     },
     {
-      "name": "Auth",
+      "name": "Auth & Security Guards",
       "item": [
         {
-          "name": "Register",
+          "name": "Unauthorized Access Guard",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if (pm.response.code === 201) {",
-                  "  const json = pm.response.json();",
-                  "  if (json.access_token) {",
-                  "    pm.environment.set('jwt_token', json.access_token);",
-                  "  }",
+                  "pm.test('Protected route rejects missing JWT with 401', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Error payload includes statusCode 401', function () {",
+                  "  pm.expect(json.statusCode).to.eql(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/players",
+              "host": ["{{base_url}}"],
+              "path": ["players"]
+            }
+          }
+        },
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const uniqueEmail = `qa.postman.${Date.now()}.${Math.floor(Math.random() * 10000)}@mercatoiq.io`;",
+                  "pm.environment.set('test_email', uniqueEmail);",
+                  "if (!pm.environment.get('test_password')) {",
+                  "  pm.environment.set('test_password', 'StrongPass2026!');",
                   "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Register returns 201 Created', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Register returns JWT and user profile', function () {",
+                  "  pm.expect(json.access_token).to.be.a('string').and.match(/^[^.]+\\.[^.]+\\.[^.]+$/);",
+                  "  pm.expect(json.user).to.be.an('object');",
+                  "  pm.expect(json.user.id).to.be.a('string').and.not.empty;",
+                  "  pm.expect(json.user.email).to.eql(pm.environment.get('test_email'));",
+                  "  pm.expect(json.user.role).to.eql('user');",
+                  "});",
+                  "pm.environment.set('jwt_token', json.access_token);"
                 ]
               }
             }
@@ -61,7 +130,42 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"analyst@mercatoiq.io\",\n  \"password\": \"StrongPass2026!\"\n}"
+              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Register Duplicate Conflict",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Duplicate email returns 409 Conflict', function () {",
+                  "  pm.response.to.have.status(409);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Conflict error message matches backend', function () {",
+                  "  pm.expect(json.statusCode).to.eql(409);",
+                  "  pm.expect(json.message).to.eql('Email is already in use');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/auth/register",
@@ -78,12 +182,16 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if (pm.response.code === 200) {",
-                  "  const json = pm.response.json();",
-                  "  if (json.access_token) {",
-                  "    pm.environment.set('jwt_token', json.access_token);",
-                  "  }",
-                  "}"
+                  "pm.test('Login returns 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Login returns valid JWT and user role', function () {",
+                  "  pm.expect(json.access_token).to.be.a('string').and.match(/^[^.]+\\.[^.]+\\.[^.]+$/);",
+                  "  pm.expect(json.user.email).to.eql(pm.environment.get('test_email'));",
+                  "  pm.expect(json.user.role).to.eql('user');",
+                  "});",
+                  "pm.environment.set('jwt_token', json.access_token);"
                 ]
               }
             }
@@ -94,7 +202,41 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"analyst@mercatoiq.io\",\n  \"password\": \"StrongPass2026!\"\n}"
+              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login Invalid Credentials",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Invalid credentials return 401 Unauthorized', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Unauthorized payload matches backend', function () {",
+                  "  pm.expect(json.statusCode).to.eql(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"WrongPassword123!\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/auth/login",
@@ -106,10 +248,44 @@
       ]
     },
     {
-      "name": "Players (Silver CRUD)",
+      "name": "Players (Silver CRUD & Data)",
       "item": [
         {
           "name": "List Players",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List Players returns 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Pagination metadata and real Silver players data exist', function () {",
+                  "  pm.expect(json.meta).to.be.an('object');",
+                  "  pm.expect(json.meta.page).to.eql(1);",
+                  "  pm.expect(json.meta.limit).to.eql(20);",
+                  "  pm.expect(json.meta.total).to.be.a('number').and.above(0);",
+                  "  pm.expect(json.meta.totalPages).to.be.a('number').and.at.least(1);",
+                  "  pm.expect(json.data).to.be.an('array').and.not.empty;",
+                  "});",
+                  "pm.test('Every player matches filter and descending market value order', function () {",
+                  "  for (let i = 0; i < json.data.length; i++) {",
+                  "    const p = json.data[i];",
+                  "    pm.expect(p.player_id).to.be.a('number');",
+                  "    pm.expect(p.player_name).to.be.a('string').and.not.empty;",
+                  "    pm.expect(p.position).to.eql('Attack');",
+                  "    if (i > 0 && p.current_market_value_eur != null && json.data[i - 1].current_market_value_eur != null) {",
+                  "      pm.expect(json.data[i - 1].current_market_value_eur).to.be.at.least(p.current_market_value_eur);",
+                  "    }",
+                  "  }",
+                  "});",
+                  "pm.environment.set('existing_player_id', String(json.data[0].player_id));"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -127,24 +303,73 @@
         },
         {
           "name": "Get Player by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get Player by ID returns 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Player details match requested player_id', function () {",
+                  "  pm.expect(json.player_id).to.eql(Number(pm.environment.get('existing_player_id')));",
+                  "  pm.expect(json.player_name).to.be.a('string').and.not.empty;",
+                  "  pm.expect(json.market_valuations).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/players/{{sample_player_id}}",
+              "raw": "{{base_url}}/players/{{existing_player_id}}",
               "host": ["{{base_url}}"],
-              "path": ["players", "{{sample_player_id}}"]
+              "path": ["players", "{{existing_player_id}}"]
             }
           }
         },
         {
           "name": "Create Player",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const disposableId = 99000000 + Math.floor(Math.random() * 900000);",
+                  "pm.environment.set('test_player_id', String(disposableId));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Player returns 201 Created', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Created player preserves DTO payload', function () {",
+                  "  pm.expect(json.player_id).to.eql(Number(pm.environment.get('test_player_id')));",
+                  "  pm.expect(json.player_name).to.eql('QA Test Prospect');",
+                  "  pm.expect(json.current_club).to.be.an('object');",
+                  "  pm.expect(json.current_club.club_id).to.eql(131);",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"player_id\": 999001,\n  \"player_name\": \"Lamine Yamal\",\n  \"date_of_birth\": \"2007-07-13\",\n  \"nationality\": \"Spain\",\n  \"position\": \"Attack\",\n  \"sub_position\": \"Right Winger\",\n  \"foot\": \"left\",\n  \"height_cm\": 180,\n  \"current_club\": {\n    \"club_id\": 131,\n    \"club_name\": \"FC Barcelona\",\n    \"joined_date\": \"2023-07-01\",\n    \"contract_expiry\": \"2026-06-30\"\n  },\n  \"current_market_value_eur\": 150000000,\n  \"highest_market_value_eur\": 180000000\n}"
+              "raw": "{\n  \"player_id\": {{test_player_id}},\n  \"player_name\": \"QA Test Prospect\",\n  \"date_of_birth\": \"2007-07-13\",\n  \"nationality\": \"Spain\",\n  \"position\": \"Attack\",\n  \"sub_position\": \"Right Winger\",\n  \"foot\": \"left\",\n  \"height_cm\": 180,\n  \"current_club\": {\n    \"club_id\": 131,\n    \"club_name\": \"FC Barcelona\",\n    \"joined_date\": \"2023-07-01\",\n    \"contract_expiry\": \"2026-06-30\"\n  },\n  \"current_market_value_eur\": 150000000,\n  \"highest_market_value_eur\": 180000000\n}"
             },
             "url": {
               "raw": "{{base_url}}/players",
@@ -155,39 +380,129 @@
         },
         {
           "name": "Update Player",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update Player returns 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Updated market value is persisted', function () {",
+                  "  pm.expect(json.player_id).to.eql(Number(pm.environment.get('test_player_id')));",
+                  "  pm.expect(json.current_market_value_eur).to.eql(185000000);",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"current_market_value_eur\": 180000000\n}"
+              "raw": "{\n  \"current_market_value_eur\": 185000000\n}"
             },
             "url": {
-              "raw": "{{base_url}}/players/{{sample_player_id}}",
+              "raw": "{{base_url}}/players/{{test_player_id}}",
               "host": ["{{base_url}}"],
-              "path": ["players", "{{sample_player_id}}"]
+              "path": ["players", "{{test_player_id}}"]
             }
           }
         },
         {
           "name": "Delete Player",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Delete Player returns 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Delete confirmation matches disposable test_player_id', function () {",
+                  "  pm.expect(json.deleted).to.eql(true);",
+                  "  pm.expect(json.player_id).to.eql(Number(pm.environment.get('test_player_id')));",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/players/{{sample_player_id}}",
+              "raw": "{{base_url}}/players/{{test_player_id}}",
               "host": ["{{base_url}}"],
-              "path": ["players", "{{sample_player_id}}"]
+              "path": ["players", "{{test_player_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Verify Deleted Player 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Deleted player returns 404 Not Found', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('404 error payload matches backend', function () {",
+                  "  pm.expect(json.statusCode).to.eql(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/players/{{test_player_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["players", "{{test_player_id}}"]
             }
           }
         }
       ]
     },
     {
-      "name": "Transfers (Silver CRUD)",
+      "name": "Transfers (Silver CRUD & Data)",
       "item": [
         {
           "name": "List Transfers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List Transfers returns 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Pagination metadata and real Silver transfers data exist', function () {",
+                  "  pm.expect(json.meta).to.be.an('object');",
+                  "  pm.expect(json.meta.total).to.be.a('number').and.above(0);",
+                  "  pm.expect(json.data).to.be.an('array').and.not.empty;",
+                  "  json.data.forEach((t) => {",
+                  "    pm.expect(t._id).to.be.a('string').and.not.empty;",
+                  "    pm.expect(t.player_id).to.be.a('number');",
+                  "    pm.expect(t.season).to.eql(2024);",
+                  "  });",
+                  "});",
+                  "pm.environment.set('existing_transfer_id', json.data[0]._id);"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -205,13 +520,31 @@
         },
         {
           "name": "Get Transfer by Mongo ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get Transfer by ID returns 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Transfer details match requested _id', function () {",
+                  "  pm.expect(json._id).to.eql(pm.environment.get('existing_transfer_id'));",
+                  "  pm.expect(json.player_id).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/transfers/{{sample_transfer_id}}",
+              "raw": "{{base_url}}/transfers/{{existing_transfer_id}}",
               "host": ["{{base_url}}"],
-              "path": ["transfers", "{{sample_transfer_id}}"]
+              "path": ["transfers", "{{existing_transfer_id}}"]
             }
           }
         },
@@ -223,12 +556,16 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if (pm.response.code === 201) {",
-                  "  const json = pm.response.json();",
-                  "  if (json._id) {",
-                  "    pm.environment.set('sample_transfer_id', json._id);",
-                  "  }",
-                  "}"
+                  "pm.test('Create Transfer returns 201 Created', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Created transfer returns Mongo _id and DTO fields', function () {",
+                  "  pm.expect(json._id).to.be.a('string').and.not.empty;",
+                  "  pm.expect(json.player_id).to.eql(342229);",
+                  "  pm.expect(json.transfer_type).to.eql('free');",
+                  "});",
+                  "pm.environment.set('test_transfer_id', json._id);"
                 ]
               }
             }
@@ -249,52 +586,142 @@
         },
         {
           "name": "Update Transfer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update Transfer returns 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Updated transfer fee is persisted', function () {",
+                  "  pm.expect(json._id).to.eql(pm.environment.get('test_transfer_id'));",
+                  "  pm.expect(json.transfer_fee_eur).to.eql(1500000);",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"transfer_fee_eur\": 0\n}"
+              "raw": "{\n  \"transfer_fee_eur\": 1500000\n}"
             },
             "url": {
-              "raw": "{{base_url}}/transfers/{{sample_transfer_id}}",
+              "raw": "{{base_url}}/transfers/{{test_transfer_id}}",
               "host": ["{{base_url}}"],
-              "path": ["transfers", "{{sample_transfer_id}}"]
+              "path": ["transfers", "{{test_transfer_id}}"]
             }
           }
         },
         {
           "name": "Delete Transfer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Delete Transfer returns 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Delete confirmation matches disposable test_transfer_id', function () {",
+                  "  pm.expect(json.deleted).to.eql(true);",
+                  "  pm.expect(json.id).to.eql(pm.environment.get('test_transfer_id'));",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/transfers/{{sample_transfer_id}}",
+              "raw": "{{base_url}}/transfers/{{test_transfer_id}}",
               "host": ["{{base_url}}"],
-              "path": ["transfers", "{{sample_transfer_id}}"]
+              "path": ["transfers", "{{test_transfer_id}}"]
             }
           }
         }
       ]
     },
     {
-      "name": "Analytics (Gold)",
+      "name": "Analytics (Gold Layer & KPIs)",
       "item": [
         {
           "name": "KPIs Summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('KPIs returns 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Silver volume counters are populated (> 0)', function () {",
+                  "  pm.expect(json.total_appearances_analysed).to.be.a('number').and.above(0);",
+                  "  pm.expect(json.total_players).to.be.a('number').and.above(0);",
+                  "  pm.expect(json.total_transfers).to.be.a('number').and.above(0);",
+                  "});",
+                  "pm.test('Gold highlights and freshness timestamp are populated', function () {",
+                  "  pm.expect(json.top_roi_club).to.be.an('object');",
+                  "  pm.expect(json.top_roi_club.roi).to.be.a('number');",
+                  "  pm.expect(json.top_ucl_step_up_player).to.be.an('object');",
+                  "  pm.expect(json.top_ucl_step_up_player.goals_per_90_delta).to.be.a('number');",
+                  "  pm.expect(Number.isNaN(Date.parse(json.last_updated))).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/analytics/kpis?season=2024",
+              "raw": "{{base_url}}/analytics/kpis",
               "host": ["{{base_url}}"],
-              "path": ["analytics", "kpis"],
-              "query": [{ "key": "season", "value": "2024" }]
+              "path": ["analytics", "kpis"]
             }
           }
         },
         {
           "name": "Q1 · Club Transfer ROI",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Q1 Club ROI returns 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Q1 returns real paginated Gold club ROI records', function () {",
+                  "  pm.expect(json.meta.total).to.be.a('number').and.above(0);",
+                  "  pm.expect(json.data).to.be.an('array').and.not.empty;",
+                  "  for (let i = 0; i < json.data.length; i++) {",
+                  "    const row = json.data[i];",
+                  "    pm.expect(row.club_id).to.be.a('number');",
+                  "    pm.expect(row.club_name).to.be.a('string').and.not.empty;",
+                  "    pm.expect(row.season).to.eql(2024);",
+                  "    pm.expect(row.total_fees_paid_eur).to.be.a('number');",
+                  "    pm.expect(row.total_value_gain_eur).to.be.a('number');",
+                  "    if (i > 0 && row.roi !== null && json.data[i - 1].roi !== null) {",
+                  "      pm.expect(json.data[i - 1].roi).to.be.at.least(row.roi);",
+                  "    }",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -312,15 +739,47 @@
         },
         {
           "name": "Q2 · U23 ML Scouting",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Q2 U23 Scouting returns 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Q2 matches paginated Gold contract', function () {",
+                  "  pm.expect(json.data).to.be.an('array');",
+                  "  pm.expect(json.meta).to.be.an('object');",
+                  "  pm.expect(json.meta.total).to.be.a('number').and.at.least(0);",
+                  "  pm.expect(json.meta.page).to.eql(1);",
+                  "  pm.expect(json.meta.limit).to.eql(20);",
+                  "  if (json.data.length > 0) {",
+                  "    for (let i = 0; i < json.data.length; i++) {",
+                  "      const row = json.data[i];",
+                  "      pm.expect(row.player_id).to.be.a('number');",
+                  "      pm.expect(row.market_value_eur).to.be.a('number');",
+                  "      pm.expect(row.estimated_value_eur).to.be.a('number');",
+                  "      pm.expect(row.undervalue_ratio).to.be.a('number');",
+                  "      if (i > 0) {",
+                  "        pm.expect(json.data[i - 1].undervalue_ratio).to.be.at.least(row.undervalue_ratio);",
+                  "      }",
+                  "    }",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/analytics/scouting-u23?season=2024&page=1&limit=20",
+              "raw": "{{base_url}}/analytics/scouting-u23?page=1&limit=20",
               "host": ["{{base_url}}"],
               "path": ["analytics", "scouting-u23"],
               "query": [
-                { "key": "season", "value": "2024" },
                 { "key": "page", "value": "1" },
                 { "key": "limit", "value": "20" }
               ]
@@ -329,15 +788,44 @@
         },
         {
           "name": "Q3 · UCL vs Domestic",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Q3 UCL vs Domestic returns 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Q3 returns real paginated Gold UCL comparison records', function () {",
+                  "  pm.expect(json.meta.total).to.be.a('number').and.above(0);",
+                  "  pm.expect(json.data).to.be.an('array').and.not.empty;",
+                  "  for (let i = 0; i < json.data.length; i++) {",
+                  "    const row = json.data[i];",
+                  "    pm.expect(row.player_id).to.be.a('number');",
+                  "    pm.expect(row.player_name).to.be.a('string').and.not.empty;",
+                  "    pm.expect(row.domestic_competition_id).to.be.a('string').and.not.empty;",
+                  "    pm.expect(row.ucl_goals_per_90).to.be.a('number');",
+                  "    pm.expect(row.domestic_goals_per_90).to.be.a('number');",
+                  "    pm.expect(row.goals_per_90_delta).to.be.a('number');",
+                  "    if (i > 0) {",
+                  "      pm.expect(json.data[i - 1].goals_per_90_delta).to.be.at.least(row.goals_per_90_delta);",
+                  "    }",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/analytics/ucl-vs-domestic?season=2024&page=1&limit=20",
+              "raw": "{{base_url}}/analytics/ucl-vs-domestic?page=1&limit=20",
               "host": ["{{base_url}}"],
               "path": ["analytics", "ucl-vs-domestic"],
               "query": [
-                { "key": "season", "value": "2024" },
                 { "key": "page", "value": "1" },
                 { "key": "limit", "value": "20" }
               ]
@@ -346,17 +834,77 @@
         },
         {
           "name": "Q4 · Super-Subs Impact",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Q4 Super-Subs returns 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Q4 matches paginated Gold contract', function () {",
+                  "  pm.expect(json.data).to.be.an('array');",
+                  "  pm.expect(json.meta).to.be.an('object');",
+                  "  pm.expect(json.meta.total).to.be.a('number').and.at.least(0);",
+                  "  pm.expect(json.meta.page).to.eql(1);",
+                  "  pm.expect(json.meta.limit).to.eql(20);",
+                  "  if (json.data.length > 0) {",
+                  "    json.data.forEach((row) => {",
+                  "      pm.expect(row.player_id).to.be.a('number');",
+                  "      pm.expect(row.sub_appearances).to.be.a('number');",
+                  "      pm.expect(row.super_sub_score).to.be.a('number');",
+                  "    });",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/analytics/super-subs?season=2024&page=1&limit=20",
+              "raw": "{{base_url}}/analytics/super-subs?page=1&limit=20",
               "host": ["{{base_url}}"],
               "path": ["analytics", "super-subs"],
               "query": [
-                { "key": "season", "value": "2024" },
                 { "key": "page", "value": "1" },
                 { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Analytics Query Validation 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Out-of-bounds pagination triggers 400 Bad Request', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('ValidationPipe error structure returned', function () {",
+                  "  pm.expect(json.statusCode).to.eql(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/club-roi?page=0&limit=500",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "club-roi"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "limit", "value": "500" }
               ]
             }
           }
